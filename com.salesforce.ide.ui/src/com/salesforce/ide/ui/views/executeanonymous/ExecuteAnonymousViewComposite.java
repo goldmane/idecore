@@ -10,7 +10,6 @@
  ******************************************************************************/
 package com.salesforce.ide.ui.views.executeanonymous;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -18,13 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.apache.log4j.Priority;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.WorkspaceJob;
 import org.eclipse.core.runtime.CoreException;
-import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
@@ -56,7 +52,6 @@ import com.salesforce.ide.ui.internal.composite.BaseComposite;
 import com.salesforce.ide.ui.internal.utils.UIUtils;
 import com.salesforce.ide.ui.views.LoggingComposite;
 
-
 /**
  * Legacy class
  * 
@@ -82,6 +77,7 @@ public class ExecuteAnonymousViewComposite extends BaseComposite {
     protected Button btnSaveSnippet = null;
     protected Button btnLoadSnippet = null;
     protected Combo cboSavedSnippets = null;
+    private final String SNIPPETS_FILE_NAME = "anon.snippets";
     protected Map<String, String> apexSnippets = null;
 
     Color color = new Color(Display.getCurrent(), 240, 240, 240);
@@ -120,7 +116,7 @@ public class ExecuteAnonymousViewComposite extends BaseComposite {
 
         loadProjects();
         setActiveProject(executeAnonymousController.getProject());
-        loadSnippets();
+        //snippets are loaded as part of project 'selection'
     }
 
     private void createSash() {
@@ -185,41 +181,6 @@ public class ExecuteAnonymousViewComposite extends BaseComposite {
                     btnSaveSnippet.setEnabled(sourceNotEmpty);
                 }
             }
-        });
-    }
-    
-    private void createSnippetManagementComposite(){
-    	cmpSnippet = new Composite(cmpSource, SWT.NONE);
-    	cmpSnippet.setLayout(new GridLayout(4, false));
-    	
-    	CLabel lblCboTitle = new CLabel(cmpSnippet, SWT.None);
-    	lblCboTitle.setLayoutData(new GridData(SWT.BEGINNING));
-    	lblCboTitle.setText("Snippets:");
-    	
-    	cboSavedSnippets = new Combo(cmpSnippet, SWT.DROP_DOWN | SWT.READ_ONLY);
-    	
-    	// Load snippet button
-        this.btnLoadSnippet = new Button(cmpSnippet, SWT.NONE);
-        this.btnLoadSnippet.setText("Load Snippet");
-        this.btnLoadSnippet.setEnabled(false);
-        this.btnLoadSnippet.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
-        this.btnLoadSnippet.addMouseListener(new MouseAdapter(){
-        	@Override
-        	public void mouseUp(MouseEvent e){
-        		Utils.openConfirm("Hello", "Load Snippet");
-        	}
-        });
-    	
-    	// Save snippet button
-        this.btnSaveSnippet = new Button(cmpSnippet, SWT.NONE);
-        this.btnSaveSnippet.setText("Save as Snippet");
-        this.btnSaveSnippet.setEnabled(false);
-        this.btnSaveSnippet.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
-        this.btnSaveSnippet.addMouseListener(new MouseAdapter(){
-        	@Override
-        	public void mouseUp(MouseEvent e){
-        		Utils.openConfirm("Hello", "Save Snippet");
-        	}
         });
     }
 
@@ -319,6 +280,7 @@ public class ExecuteAnonymousViewComposite extends BaseComposite {
         }
 
         if (project != null && project.getName().equals(cboProject.getText())) {
+        	loadSnippets();
             enableComposite(true);
         } else {
             enableComposite(false);
@@ -365,30 +327,6 @@ public class ExecuteAnonymousViewComposite extends BaseComposite {
 
         layout(true, true);
     }
-    
-    public void loadSnippets(){
-    	if(cboProject == null){
-    		logger.warn("cboProject is NULL");
-    		return;
-    	}else{
-    		cboSavedSnippets.removeAll();
-    	}
-    	
-    	if(executeAnonymousController.getProject() == null){
-    		logger.warn("controller.project() is NULL");
-    		cboSavedSnippets.add("No project selected.");
-    		cboSavedSnippets.select(0);
-    		cboSavedSnippets.setEnabled(false);
-    		btnSaveSnippet.setEnabled(false);
-    		btnLoadSnippet.setEnabled(false);
-    		return;
-    	}
-    	
-    	if(apexSnippets == null)
-    		apexSnippets = new HashMap<String,String>();
-    	
-    	//load from file
-    }
 
     private void setSelectedProjectCombo(IProject selectedProject) {
         if (cboProject != null && Utils.isNotEmpty(selectedProject)) {
@@ -432,4 +370,82 @@ public class ExecuteAnonymousViewComposite extends BaseComposite {
 
     }
 
+    private void createSnippetManagementComposite(){
+    	cmpSnippet = new Composite(cmpSource, SWT.NONE);
+    	cmpSnippet.setLayout(new GridLayout(4, false));
+    	
+    	CLabel lblCboTitle = new CLabel(cmpSnippet, SWT.None);
+    	lblCboTitle.setLayoutData(new GridData(SWT.BEGINNING));
+    	lblCboTitle.setText("Snippets:");
+    	
+    	cboSavedSnippets = new Combo(cmpSnippet, SWT.DROP_DOWN | SWT.READ_ONLY | SWT.FILL);
+    	
+    	// Load snippet button
+        this.btnLoadSnippet = new Button(cmpSnippet, SWT.NONE);
+        this.btnLoadSnippet.setText("Load Snippet");
+        this.btnLoadSnippet.setEnabled(false);
+        this.btnLoadSnippet.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
+        this.btnLoadSnippet.addMouseListener(new MouseAdapter(){
+        	@Override
+        	public void mouseUp(MouseEvent e){
+        		Utils.openConfirm("Hello", "Load Snippet");
+        	}
+        });
+    	
+    	// Save snippet button
+        this.btnSaveSnippet = new Button(cmpSnippet, SWT.NONE);
+        this.btnSaveSnippet.setText("Save as Snippet");
+        this.btnSaveSnippet.setEnabled(false);
+        this.btnSaveSnippet.setLayoutData(new GridData(SWT.END, SWT.CENTER, true, false));
+        this.btnSaveSnippet.addMouseListener(new MouseAdapter(){
+        	@Override
+        	public void mouseUp(MouseEvent e){
+        		try{
+        			ExecuteAnonymousSnippetSaveDialog dlg = new ExecuteAnonymousSnippetSaveDialog(executeAnonymousController, getShell());
+            		dlg.create();
+            		int dlgResult = dlg.open();
+            		logger.info("Dialog result: " + dlgResult);
+        		}catch(Exception ex){
+        			logger.error(ex.getStackTrace());
+        		}
+        	}
+        });
+    }
+    
+    public void loadSnippets(){
+    	if(cboProject == null){
+    		return;
+    	}else{
+    		cboSavedSnippets.removeAll();
+    	}
+    	
+    	if(executeAnonymousController.getProject() == null){
+    		cboSavedSnippets.add("No project selected.");
+    		cboSavedSnippets.select(0);
+    		cboSavedSnippets.setEnabled(false);
+    		btnSaveSnippet.setEnabled(false);
+    		btnLoadSnippet.setEnabled(false);
+    		return;
+    	}
+    	
+    	if(apexSnippets == null)
+    		apexSnippets = new HashMap<String,String>();
+    	
+    	//load from file
+    	IFile snippetsFile = getSnippetsFile();
+    	if(snippetsFile != null){
+    		logger.info("Snippets file found. Load.");
+    	}
+    }
+    
+    private IFile getSnippetsFile(){
+    	IProject currentProject = executeAnonymousController.getProject();
+    	if(currentProject != null){
+    		IFile snippetsFile = currentProject.getFile(SNIPPETS_FILE_NAME);
+    		if(snippetsFile.exists()){
+    			return snippetsFile;
+    		}
+    	}
+    	return null;
+    }
 }
