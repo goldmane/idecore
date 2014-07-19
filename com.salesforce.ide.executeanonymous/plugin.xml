@@ -6,7 +6,7 @@
          point="org.eclipse.ui.editors">
       <editor
             class="com.salesforce.ide.executeanonymous.ui.ExecuteAnonymousEditor"
-            extensions="anonymous"
+            extensions="executeanonymous"
             filenames="execute.anonymous"
             icon="icons/sample.gif"
             id="com.salesforce.ide.executeanonymous.ui.ExecuteAnonymousEditor"
